@@ -1,0 +1,30 @@
+2020-06-29 22:12:58
+Running ./bazel-bin/test/common/common/logger_perf_test
+Run on (16 X 2300 MHz CPU s)
+CPU Caches:
+  L1 Data 32K (x8)
+  L1 Instruction 32K (x8)
+  L2 Unified 256K (x8)
+  L3 Unified 46080K (x1)
+Load Average: 0.19, 0.35, 0.71
+----------------------------------------------------------------------------------------
+Benchmark                                              Time             CPU   Iterations
+----------------------------------------------------------------------------------------
+fancySlowPath/1024                                145945 ns       145912 ns         4778
+fancySlowPath/1024/process_time/threads:20        176109 ns       389524 ns         1920
+fancySlowPath/1024/process_time/threads:200       191220 ns       409518 ns         1800
+fancyMediumPath/1/iterations:1                    209700 ns       209938 ns            1
+fancyFastPath/1024/0                               10022 ns        10019 ns        69698
+fancyFastPath/1024/1                             3408908 ns      3408135 ns          204
+fancyFastPath/1024/0/process_time/threads:20         695 ns         9346 ns        92860
+fancyFastPath/1024/1/process_time/threads:20     4738661 ns      8821049 ns           80
+fancyFastPath/1024/0/process_time/threads:200        383 ns         5873 ns       200000
+fancyFastPath/1024/1/process_time/threads:200    4471179 ns      8295973 ns          200
+envoyNormal/1024/0                                  5042 ns         5041 ns       138722
+envoyNormal/1024/1                               3515285 ns      3514935 ns          205
+envoyNormal/1024/0/process_time/threads:20           647 ns         8489 ns       103880
+envoyNormal/1024/1/process_time/threads:20       8355803 ns     25803254 ns           20
+envoyNormal/1024/0/process_time/threads:200          339 ns         5169 ns       200000
+envoyNormal/1024/1/process_time/threads:200      8205522 ns     25532027 ns          200
+fancyLevelSetting/1024                             94815 ns        94804 ns         7367
+envoyLevelSetting/1024                             11525 ns        11524 ns        60761
