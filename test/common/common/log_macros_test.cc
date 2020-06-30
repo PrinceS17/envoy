@@ -1,4 +1,5 @@
 #include <iostream>
+#include <pthread.h>
 #include <string>
 
 #include "common/common/logger.h"
@@ -22,6 +23,9 @@ public:
     ENVOY_LOG(critical, "fake message");
     ENVOY_CONN_LOG(info, "fake message", connection_);
     ENVOY_STREAM_LOG(info, "fake message", stream_);
+
+    ENVOY_LOG(critical, "Logger's level: {}",
+              ENVOY_LOGGER().level()); // Jinhui Song: check log level
   }
 
   void logMessageEscapeSequences() { ENVOY_LOG_MISC(info, "line 1 \n line 2 \t tab \\r test"); }
@@ -48,6 +52,9 @@ TEST(Logger, evaluateParams) {
   // Log message with higher severity and make sure that params were evaluated.
   GET_MISC_LOGGER().set_level(spdlog::level::info);
   ENVOY_LOG_MISC(warn, "test message '{}'", i++);
+
+  ENVOY_LOG_MISC(info, "Test test!"); // Jinhui Song: for test only
+
   EXPECT_THAT(i, testing::Eq(2));
 }
 
@@ -135,6 +142,87 @@ TEST_F(FormatTest, OutputEscaped) {
   // Note this uses a raw string literal
   const Envoy::ExpectedLogMessages message{{"info", R"(line 1 \n line 2 \t tab \\r test)"}};
   EXPECT_LOG_CONTAINS_ALL_OF_ESCAPED(message, logMessageEscapeSequences());
+}
+
+/**
+ * Test for Fancy Logger macros.
+ */
+TEST(Fancy, Global) {
+  FANCY_LOG(info, "Hello world! Here's a line of fancy log!");
+  FANCY_LOG(error, "Fancy Error! Here's the second message!");
+
+  NiceMock<Network::MockConnection> connection_;
+  NiceMock<Http::MockStreamDecoderFilterCallbacks> stream_;
+  FANCY_CONN_LOG(warn, "Fake info {} of connection", connection_, 1);
+  FANCY_STREAM_LOG(warn, "Fake warning {} of stream", stream_, 1);
+
+  FANCY_LOG(critical, "Critical message for later flush.");
+  FANCY_FLUSH_LOG();
+}
+
+TEST(Fancy, SetLevel) {
+  const char* file = "P=NP_file";
+  setFancyLogger(file, spdlog::level::trace);
+
+  setFancyLogger(__FILE__, spdlog::level::err);
+  FANCY_LOG(error, "Fancy Error! Here's a test for level.");
+  FANCY_LOG(warn, "Warning: you shouldn't see this message!");
+}
+
+TEST(Fancy, FastPath) {
+  setFancyLogger(__FILE__, spdlog::level::info);
+  for (int i = 0; i < 10; i++) {
+    FANCY_LOG(warn, "Fake warning No. {}", i);
+  }
+}
+
+void* logThreadForTest(void* id) {
+  int tid = *static_cast<int*>(id);
+
+  if (tid == 0) {
+    FANCY_LOG(info, "Thread {}: thread to set levels", tid);
+    setFancyLogger(__FILE__, spdlog::level::trace);
+    printf(" - level = trace\n");
+    setFancyLogger(__FILE__, spdlog::level::debug);
+    printf(" - level = debug\n");
+    setFancyLogger(__FILE__, spdlog::level::info);
+    printf(" - level = info\n");
+    for (int j = 0; j < 10; j++) {
+    };
+
+    setFancyLogger(__FILE__, spdlog::level::warn);
+    printf(" - level = warn\n");
+    setFancyLogger(__FILE__, spdlog::level::err);
+    printf(" - level = error\n");
+    setFancyLogger(__FILE__, spdlog::level::critical);
+    printf(" - level = critical\n");
+  } else {
+    for (int i = 0; i < 10; i++) {
+      FANCY_LOG(critical, "Thread {} round {}: fake critical log;", tid, i);
+      FANCY_LOG(trace, "    fake trace log;");
+      FANCY_LOG(debug, "    fake debug log;");
+      FANCY_LOG(info, "   fake info;");
+      FANCY_LOG(warn, "   fake warn;");
+      FANCY_LOG(error, "    fake error;");
+      FANCY_LOG(critical, "   fake critical.");
+    }
+  }
+
+  pthread_exit(nullptr);
+  return nullptr;
+}
+
+TEST(FANCY, Threads) {
+  // test with multiple threads
+  pthread_t threads[3];
+  std::vector<int> range = {0, 1, 2};
+  for (int id : range) {
+    int rc = pthread_create(&threads[id], nullptr, logThreadForTest, static_cast<void*>(&range[id]));
+    EXPECT_EQ(rc, 0);
+  }
+  for (int id : range) {
+    pthread_join(threads[id], nullptr);
+  }
 }
 
 } // namespace Envoy
