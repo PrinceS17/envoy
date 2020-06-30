@@ -7,7 +7,7 @@ using spdlog::level::level_enum;
 namespace Envoy {
 
 /**
- * FancyLogger implementation by Jinhui Song.
+ * FancyLogger implementation: a logger with fine-grained log control.
  */
 
 /**
@@ -31,7 +31,7 @@ FancyMapPtr getFancyLogMap() ABSL_EXCLUSIVE_LOCKS_REQUIRED(fancy_log_lock__) {
 const char* LOG_PATTERN = "[%Y-%m-%d %T.%e][%t][%l][%n] %v";
 
 /**
- * Implementation of BasicLockable by Jinhui Song, to avoid dependency
+ * Implementation of BasicLockable, to avoid dependency
  * problem of thread.h.
  */
 class FancyBasicLockable : public Thread::BasicLockable {
@@ -51,7 +51,6 @@ spdlog::sink_ptr getSink() {
   static spdlog::sink_ptr sink = Logger::DelegatingLogSink::init();
   return sink;
 }
-
 
 /**
  * Initialize sink for the initialization of loggers, once and for all.
@@ -80,7 +79,7 @@ spdlog::logger* createLogger(std::string key, level_enum level = level_enum::inf
   return new_logger.get();
 }
 
-}   // namespace
+} // namespace
 
 /**
  * Initialize Fancy Logger and register it in global map if not done.

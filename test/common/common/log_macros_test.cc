@@ -23,9 +23,6 @@ public:
     ENVOY_LOG(critical, "fake message");
     ENVOY_CONN_LOG(info, "fake message", connection_);
     ENVOY_STREAM_LOG(info, "fake message", stream_);
-
-    ENVOY_LOG(critical, "Logger's level: {}",
-              ENVOY_LOGGER().level()); // Jinhui Song: check log level
   }
 
   void logMessageEscapeSequences() { ENVOY_LOG_MISC(info, "line 1 \n line 2 \t tab \\r test"); }
@@ -52,8 +49,6 @@ TEST(Logger, evaluateParams) {
   // Log message with higher severity and make sure that params were evaluated.
   GET_MISC_LOGGER().set_level(spdlog::level::info);
   ENVOY_LOG_MISC(warn, "test message '{}'", i++);
-
-  ENVOY_LOG_MISC(info, "Test test!"); // Jinhui Song: for test only
 
   EXPECT_THAT(i, testing::Eq(2));
 }

@@ -18,7 +18,7 @@
 #include "fmt/ostream.h"
 #include "spdlog/spdlog.h"
 
-#include "absl/container/flat_hash_map.h" // Addition by Jinhui Song
+#include "absl/container/flat_hash_map.h"
 
 namespace Envoy {
 namespace Logger {
@@ -362,7 +362,7 @@ protected:
 
 /**
  * ---------------------------------------------------------------
- * Fancy logging macros by Jinhui Song
+ * Fancy logging macros
  */
 
 using FancyMap = absl::flat_hash_map<std::string, std::shared_ptr<spdlog::logger>>;
