@@ -1,6 +1,7 @@
-#include "common/common/logger.h"
 #include <atomic>
 #include <memory>
+
+#include "common/common/logger.h"
 
 using spdlog::level::level_enum;
 

@@ -1,8 +1,10 @@
-#include <iostream>
 #include <pthread.h>
+
+#include <iostream>
 #include <string>
 
 #include "common/common/logger.h"
+
 #include "benchmark/benchmark.h"
 
 namespace Envoy {

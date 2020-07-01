@@ -13,12 +13,11 @@
 #include "common/common/macros.h"
 #include "common/common/non_copyable.h"
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "fmt/ostream.h"
 #include "spdlog/spdlog.h"
-
-#include "absl/container/flat_hash_map.h"
 
 namespace Envoy {
 namespace Logger {
