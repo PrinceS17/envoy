@@ -388,7 +388,7 @@ extern spdlog::sink_ptr getSink();
 /**
  * Macro for fancy logger.
  * Use a global map to store logger and take use of thread-safe spdlog::logger.
- * The local pointer is used to avoid another load() when logging. Here we use 
+ * The local pointer is used to avoid another load() when logging. Here we use
  * spdlog::logger* as atomic<shared_ptr> is a C++20 feature.
  */
 #define FANCY_LOG(LEVEL, ...)                                                                      \
@@ -425,7 +425,7 @@ extern spdlog::sink_ptr getSink();
 #define FANCY_FLUSH_LOG()                                                                          \
   {                                                                                                \
     fancy_log_lock__.ReaderLock();                                                                 \
-    getFancyLogMap()->find(FANCY_KEY)->second->flush();                                              \
+    getFancyLogMap()->find(FANCY_KEY)->second->flush();                                            \
     fancy_log_lock__.ReaderUnlock();                                                               \
   }
 

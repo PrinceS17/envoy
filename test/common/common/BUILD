@@ -117,7 +117,6 @@ envoy_cc_test(
 envoy_cc_test(
     name = "log_macros_test",
     srcs = ["log_macros_test.cc"],
-    external_deps = ["benchmark"],
     deps = [
         "//source/common/common:minimal_logger_lib",
         "//test/mocks/http:http_mocks",
@@ -133,8 +132,7 @@ envoy_cc_benchmark_binary(
     external_deps = ["benchmark"],
     deps = [
         "//source/common/common:minimal_logger_lib",
-        "//test/test_common:logging_lib",
-    ]
+    ],
 )
 
 envoy_benchmark_test(

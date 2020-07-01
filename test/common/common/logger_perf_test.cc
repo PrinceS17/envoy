@@ -22,7 +22,7 @@ static void fancySlowPath(benchmark::State& state) {
 }
 
 #define FL FANCY_LOG(trace, "Default")
-#define FL_8                                                                                      \
+#define FL_8                                                                                       \
   FL;                                                                                              \
   FL;                                                                                              \
   FL;                                                                                              \
@@ -32,9 +32,9 @@ static void fancySlowPath(benchmark::State& state) {
   FL;                                                                                              \
   FL;
 #define FL_64                                                                                      \
-  { FL_8 FL_8 FL_8 FL_8 FL_8 FL_8 FL_8 FL_8}
+  { FL_8 FL_8 FL_8 FL_8 FL_8 FL_8 FL_8 FL_8 }
 #define FL_512                                                                                     \
-  { FL_64 FL_64 FL_64 FL_64 FL_64 FL_64 FL_64 FL_64}
+  { FL_64 FL_64 FL_64 FL_64 FL_64 FL_64 FL_64 FL_64 }
 #define FL_1024                                                                                    \
   { FL_512 FL_512 }
 
