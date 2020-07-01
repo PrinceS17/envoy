@@ -1,3 +1,5 @@
+#include <pthread.h>
+
 #include <iostream>
 #include <pthread.h>
 #include <string>
@@ -52,8 +54,6 @@ TEST(Logger, evaluateParams) {
   // Log message with higher severity and make sure that params were evaluated.
   GET_MISC_LOGGER().set_level(spdlog::level::info);
   ENVOY_LOG_MISC(warn, "test message '{}'", i++);
-
-  ENVOY_LOG_MISC(info, "Test test!"); // Jinhui Song: for test only
 
   EXPECT_THAT(i, testing::Eq(2));
 }
@@ -176,7 +176,7 @@ TEST(Fancy, FastPath) {
   }
 }
 
-void* logThread(void* id) {
+void* logThreadForTest(void* id) {
   int tid = *static_cast<int*>(id);
 
   if (tid == 0) {
@@ -217,7 +217,8 @@ TEST(FANCY, Threads) {
   pthread_t threads[3];
   std::vector<int> range = {0, 1, 2};
   for (int id : range) {
-    int rc = pthread_create(&threads[id], nullptr, logThread, static_cast<void*>(&range[id]));
+    int rc =
+        pthread_create(&threads[id], nullptr, logThreadForTest, static_cast<void*>(&range[id]));
     EXPECT_EQ(rc, 0);
   }
   for (int id : range) {

@@ -13,6 +13,7 @@
 #include "common/common/macros.h"
 #include "common/common/non_copyable.h"
 
+#include "absl/container/flat_hash_map.h"
 #include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "fmt/ostream.h"
@@ -362,14 +363,16 @@ protected:
 
 /**
  * ---------------------------------------------------------------
- * Fancy logging macros by Jinhui Song
+ * Fancy logging macros
  */
 
 using FancyMap = absl::flat_hash_map<std::string, std::shared_ptr<spdlog::logger>>;
+using FancyMapPtr = std::shared_ptr<FancyMap>;
+using SpdLoggerPtr = std::shared_ptr<spdlog::logger>;
 
 extern absl::Mutex fancy_log_lock__;
 
-extern std::shared_ptr<FancyMap> getFancyLogMap();
+extern FancyMapPtr getFancyLogMap();
 
 extern void setFancyLogger(std::string key, spdlog::level::level_enum log_level);
 
@@ -386,7 +389,7 @@ extern spdlog::sink_ptr getSink();
 /**
  * Macro for fancy logger.
  * Use a global map to store logger and take use of thread-safe spdlog::logger.
- * The local pointer is used to avoid another load() when logging. Here we use 
+ * The local pointer is used to avoid another load() when logging. Here we use
  * spdlog::logger* as atomic<shared_ptr> is a C++20 feature.
  */
 #define FANCY_LOG(LEVEL, ...)                                                                      \
@@ -423,7 +426,7 @@ extern spdlog::sink_ptr getSink();
 #define FANCY_FLUSH_LOG()                                                                          \
   {                                                                                                \
     fancy_log_lock__.ReaderLock();                                                                 \
-    getFancyLogMap()->find(FANCY_KEY)->second->flush();                                              \
+    getFancyLogMap()->find(FANCY_KEY)->second->flush();                                            \
     fancy_log_lock__.ReaderUnlock();                                                               \
   }
 

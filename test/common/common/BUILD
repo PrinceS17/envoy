@@ -133,8 +133,7 @@ envoy_cc_benchmark_binary(
     external_deps = ["benchmark"],
     deps = [
         "//source/common/common:minimal_logger_lib",
-        "//test/test_common:logging_lib",
-    ]
+    ],
 )
 
 envoy_benchmark_test(
