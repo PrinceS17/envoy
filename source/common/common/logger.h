@@ -209,8 +209,12 @@ public:
           Thread::BasicLockable& lock, bool should_escape);
   ~Context();
 
+public:
+  static std::string fancy_log_format_;
+  static spdlog::level::level_enum fancy_default_level_;
+
 private:
-  void activate();
+  void activate(std::string mode = "Envoy");
 
   const spdlog::level::level_enum log_level_;
   const std::string log_format_;
@@ -369,6 +373,8 @@ protected:
 using FancyMap = absl::flat_hash_map<std::string, std::shared_ptr<spdlog::logger>>;
 using FancyMapPtr = std::shared_ptr<FancyMap>;
 using SpdLoggerPtr = std::shared_ptr<spdlog::logger>;
+
+extern spdlog::level::level_enum kFancyDefaultLevel;
 
 extern absl::Mutex fancy_log_lock__;
 
