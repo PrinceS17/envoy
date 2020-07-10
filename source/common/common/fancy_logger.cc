@@ -1,42 +1,29 @@
-#include "common/common/logger.h"
+#include "common/common/fancy_logger.h"
+
 #include <atomic>
 #include <memory>
+
+#include "common/common/logger.h"
 
 using spdlog::level::level_enum;
 
 namespace Envoy {
 
 /**
- * FancyLogger implementation by Jinhui Song.
+ * FancyLogger implementation: a logger with fine-grained log control.
  */
 
-/**
- * If the sink is initialized.
- */
-int kSinkInit = 0;
+absl::Mutex FancyContext::fancy_log_lock_(absl::kConstInit);
 
-/**
- * Lock for the following global map (not for the corresponding loggers).
- */
-absl::Mutex fancy_log_lock__;
-
-/**
- * Global hash map <unit, log info>, where unit can be file, function or line.
- */
-std::shared_ptr<FancyMap> getFancyLogMap() {
-  static std::shared_ptr<FancyMap> fancy_log_map = std::make_shared<FancyMap>();
+FancyMapPtr FancyContext::getFancyLogMap() {
+  static FancyMapPtr fancy_log_map = std::make_shared<FancyMap>();
   return fancy_log_map;
 }
 
-const char* LOG_PATTERN = "[%Y-%m-%d %T.%e][%t][%l][%n] %v";
-
-spdlog::sink_ptr getSink() {
-  static spdlog::sink_ptr sink = Logger::DelegatingLogSink::init();
-  return sink;
-}
+absl::Mutex* FancyContext::getFancyLogLock() { return &fancy_log_lock_; }
 
 /**
- * Implementation of BasicLockable by Jinhui Song, to avoid dependency
+ * Implementation of BasicLockable, to avoid dependency
  * problem of thread.h.
  */
 class FancyBasicLockable : public Thread::BasicLockable {
@@ -53,8 +40,8 @@ private:
 /**
  * Initialize sink for the initialization of loggers, once and for all.
  */
-void initSink() {
-  spdlog::sink_ptr sink = getSink();
+void FancyContext::initSink() {
+  spdlog::sink_ptr sink = Logger::Registry::getSink();
   Logger::DelegatingLogSinkSharedPtr sp = std::static_pointer_cast<Logger::DelegatingLogSink>(sink);
   if (!sp->hasLock()) {
     static FancyBasicLockable tlock;
@@ -67,10 +54,18 @@ void initSink() {
 /**
  * Create a logger and add it to map.
  */
-spdlog::logger* createLogger(std::string key, level_enum level = level_enum::info) {
-  std::shared_ptr<spdlog::logger> new_logger = std::make_shared<spdlog::logger>(key, getSink());
-  new_logger->set_level(level);
-  new_logger->set_pattern(LOG_PATTERN);
+spdlog::logger* FancyContext::createLogger(std::string key, int level)
+    ABSL_EXCLUSIVE_LOCKS_REQUIRED(fancy_log_lock_) {
+  SpdLoggerPtr new_logger = std::make_shared<spdlog::logger>(key, Logger::Registry::getSink());
+  if (!Logger::Registry::getSink()->hasLock()) {
+    initSink();
+  }
+  level_enum lv = Logger::Context::getFancyDefaultLevel();
+  if (level > -1) {
+    lv = static_cast<level_enum>(level);
+  }
+  new_logger->set_level(lv);
+  new_logger->set_pattern(Logger::Context::getFancyLogFormat());
   new_logger->flush_on(level_enum::critical);
   getFancyLogMap()->insert(std::make_pair(key, new_logger));
   return new_logger.get();
@@ -79,11 +74,8 @@ spdlog::logger* createLogger(std::string key, level_enum level = level_enum::inf
 /**
  * Initialize Fancy Logger and register it in global map if not done.
  */
-void initFancyLogger(std::string key, std::atomic<spdlog::logger*>& logger) {
-  absl::WriterMutexLock l(&fancy_log_lock__);
-  if (!kSinkInit) {
-    initSink();
-  }
+void FancyContext::initFancyLogger(std::string key, std::atomic<spdlog::logger*>& logger) {
+  absl::WriterMutexLock l(&FancyContext::fancy_log_lock_);
   auto it = getFancyLogMap()->find(key);
   spdlog::logger* target;
   if (it == getFancyLogMap()->end()) {
@@ -95,16 +87,24 @@ void initFancyLogger(std::string key, std::atomic<spdlog::logger*>& logger) {
 }
 
 /**
- * Set log level.
+ * Set log level. If not found, return false.
  */
-void setFancyLogger(std::string key, level_enum log_level) {
-  absl::WriterMutexLock l(&fancy_log_lock__);
+bool FancyContext::setFancyLogger(std::string key, level_enum log_level) {
+  absl::ReaderMutexLock l(&FancyContext::fancy_log_lock_);
   auto it = getFancyLogMap()->find(key);
   if (it != getFancyLogMap()->end()) {
     it->second->set_level(log_level);
-  } else {
-    createLogger(key, log_level);
+    return true;
   }
+  return false;
+}
+
+/**
+ * Flush logger. Used in server.
+ */
+void FancyContext::flushFancyLogger() {
+  absl::ReaderMutexLock l(&FancyContext::fancy_log_lock_);
+  getFancyLogMap()->find(FANCY_KEY)->second->flush();
 }
 
 } // namespace Envoy
