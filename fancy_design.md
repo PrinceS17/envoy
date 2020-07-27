@@ -2,7 +2,7 @@
 
 ## Flexible Granularity Log Control in Envoy - Draft Design
 Jinhui Song
-June 25, 2020
+June 25, 2020 [Updated on July 27]
 
 ### Abstract
 We develop a new logging system Fancy Logger for Envoy which enables log level control of a more flexible granularity, e.g. file, function, or even line, as well as runtime level control without requiring developers to explicit use `Loggable` component in each source file.
@@ -75,14 +75,11 @@ The log macro `FANCY_LOG(LEVEL, ...)` is the core design of Fancy Logger.
     static std::atomic<spdlog::logger*> flogger{0};                                                \
     spdlog::logger* local_flogger = flogger.load(std::memory_order_relaxed);                       \
     if (!local_flogger) {                                                                          \
-      initFancyLogger(FANCY_KEY, flogger);                                                         \
-      flogger.load(std::memory_order_relaxed)                                                      \
-          ->log(spdlog::source_loc{__FILE__, __LINE__, __func__}, ENVOY_SPDLOG_LEVEL(LEVEL),       \
-                __VA_ARGS__);                                                                      \
-    } else {                                                                                       \
-      local_flogger->log(spdlog::source_loc{__FILE__, __LINE__, __func__},                         \
-                         ENVOY_SPDLOG_LEVEL(LEVEL), __VA_ARGS__);                                  \
+      getFancyContext().initFancyLogger(FANCY_KEY, flogger);                                       \
+      local_flogger = flogger.load(std::memory_order_relaxed);                                     \
     }                                                                                              \
+    local_flogger->log(spdlog::source_loc{__FILE__, __LINE__, __func__},                           \
+                       ENVOY_SPDLOG_LEVEL(LEVEL), __VA_ARGS__);                                    \
   } while (0)
   ```
   
@@ -90,16 +87,20 @@ The log macro `FANCY_LOG(LEVEL, ...)` is the core design of Fancy Logger.
   
 When flogger is `nullptr`, there are two cases due to the N-to-1 mapping between macro call sites and logging component. If the global logger doesn't exist, then `createLogger(key, level)` is called to create one and store the pointer in `flogger`. This is called *slow path* as it's the slowest operation in Fancy Logger. Otherwise, the global logger is created by another site with the same key, so the global pointer is fetched at once and stored in `flogger`. This is called *medium path*.
 
-#### Log Level Update (In progress)
-A function `setFancyLogger(key, level)` is provided to update the log level of a certain log component. We **will** hook the admin page to the function and provide a log level table with the specified granularity so that users can modify the log level at runtime.
+#### Log Level Update
+The following functions are provided to set log level of Fancy Logger: `bool setFancyLogger(key, level), void setAllFancyLoggers(level)`. The former updates the log level of a certain log component with given key and return false if not found, and the latter updates the log levels of all loggers. They are both used to hook admin page with the update of Fancy Logger.
 
-#### Migration (In progress)
+#### Migration
 <!-- give choices to developers -->
-Aside from `FANCY_LOG`, `FANCY_CONN_LOG`, `FANCY_STREAM_LOG` and `FANCY_FLUSH_LOG` are also implemented to replace the Envoy's convenient macros `ENVOY_CONN_LOG`, `ENVOY_STREAM_LOG` and `ENVOY_FLUSH_LOG`. **Though not implemented yet**, it's quite easy to wrap up Fancy Logger's macros in Envoy's default macros. To create a smooth migration path, options for both Envoy's logging and Fancy Logger **should be** provided in command line. 
+Aside from `FANCY_LOG`, `FANCY_CONN_LOG`, `FANCY_STREAM_LOG` and `FANCY_FLUSH_LOG` are also implemented to replace the Envoy's convenient macros `ENVOY_CONN_LOG`, `ENVOY_STREAM_LOG` and `ENVOY_FLUSH_LOG`. For a smooth migration, Envoy's logger is used by default and we provide a compile option for developer to use Fancy Logger. In other words, if macro `FANCY` is not defined, `ENVOY_LOG` keeps the same as before but `FANCY_LOG` can be explicitly called; otherwise `ENVOY_LOG` is expanded to `FANCY_LOG` and all predefined Envoy's loggers are deprecated. 
 
-#### Configuration Interfaces (In progress)
+#### Configuration Interfaces: Command Line and Administration Interface
 <!-- log-path; log-format; runtime update API, etc -->
-Configuration interfaces **need** to be provided for easy use of Fancy Logger, e.g. options of log path and log format. Also, runtime update API is an important part of Fancy Logger itself.
+Users can use command line to set default log level and format of Fancy Logger just as what they do for Envoy's logger. It's implemented by calling `setDefaultFancyLevelFormat(log_level_, log_format_)` when initializing or switching the logging context of Envoy. The logger of default level will be updated to the new default level, and the rest will keep the same level as they are customized before.
+
+Envoy provides an administration interface ("admin page") to enable dynamic change of logger. The [admin page for logger](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#post--logging) supports the following operations: list all active loggers, set log level of a specific logger, and set levels for all loggers. Correspondingly, three APIs are provided to support same operations of Fancy Logger: `listFancyLoggers(), setFancyLogger(key, level), setAllFancyLoggers(level)`, and used in log handler of admin page. Once the logging context has a Fancy mode, the handler uses theses APIs to update Fancy Logger instead updating Envoy's logger.
+
+**Reminder**: if `FANCY` isn't defined, the logger mode of context won't be FANCY, which means the handlers of Fancy Logger won't be enabled.
 
 ### Alternative Design
 <!-- linked list as global -> local level & epoch-->
@@ -130,3 +131,4 @@ Here are the existing logging system we refered to:
 - Google3 Log: [https://github.com/google/glog](https://github.com/google/glog)
 - ns-3 LogComponent: [https://www.nsnam.org/doxygen/classns3_1_1_log_component.html](https://www.nsnam.org/doxygen/classns3_1_1_log_component.html)
 - spdlog: [https://github.com/gabime/spdlog](https://github.com/gabime/spdlog)
+- Envoy's Administration Interface: [https://www.envoyproxy.io/docs/envoy/latest/operations/admin#administration-interface](https://www.envoyproxy.io/docs/envoy/latest/operations/admin#administration-interface)
