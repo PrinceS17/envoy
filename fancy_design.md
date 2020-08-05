@@ -123,8 +123,7 @@ The second reason saves us from the complexity of epoch because the local pointe
 Considering the real cases where the logger can be used, we prioritize the performance of fast path (with or without printing) and relatively deprioritize performance of slow path and log level setting as slow path occurs only once per call site and log level is probably only changed at the beginning or debugging time.
 
 Benchmark tests of slow path, medium path and fast path are conducted, and Fancy Logger is also compared with Envoy's logger. Fancy Logger has a slower fast path when there's no printing, but the CPU time is still small enough. When printing log messages in single and multiple thread cases, Fancy Logger is even faster than Envoy's logger. Besides, Fancy Logger is much slower than Envoy's logger in level setting due to the extra work needed here (lock, update global map, etc), but it should be okay as the level changing is rare in reality.
-**![](https://lh3.googleusercontent.com/h7VPBwIJuIgOW4gGdPnYDpW9Y5swRTIYPSHAughtC47f0jqchWl9oiP2n5ZfmwnxvJXjgUocGAzDOFOz5SbHeYxhvOMIWyCeG6BF46M0zAMYxERyitbWudzkOkuz6N9uva33iXeFbg)**
-
+**![](https://lh6.googleusercontent.com/Q-POZ2adRXV3gD-uwSUNPmmbbzsgk0kkxupy32h3iVDCF877b2yKIm0Z2Dc3B2s0HgIukqL1McDsfOpvpx2wc7DdrBLCzAIcHy99G90VLeGk773tBUEpoQAoFwaViBWhM10j3wU0YA)**
 
 ### References
 Here are the existing logging system we refered to:
